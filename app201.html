@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Music Kako</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.min.js"></script>
+  <style>
+    :root {
+      --primary: #4CAF50;
+      --secondary: #81C784;
+      --background: #121212;
+      --surface: #1e1e1e;
+      --text: #ffffff;
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: var(--background);
+      color: var(--text);
+    }
+    .app {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      padding: 1rem;
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--primary);
+    }
+    .search-container {
+      position: relative;
+      width: 300px;
+    }
+    .search {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      color: var(--text);
+      width: 100%;
+    }
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text);
+    }
+    .tabs {
+      display: flex;
+      background: var(--surface);
+      padding: 0.5rem;
+      gap: 1rem;
+    }
+    .tab {
+      color: var(--text);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .tab.active {
+      background: var(--primary);
+    }
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+    .category {
+      margin-bottom: 2rem;
+    }
+    .category-title {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      color: var(--secondary);
+    }
+    .song-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 1rem;
+    }
+    .song-card {
+      background: var(--surface);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: transform 0.2s;
+      cursor: pointer;
+    }
+    .song-card:hover {
+      transform: scale(1.05);
+    }
+    .album-art {
+      width: 100%;
+      aspect-ratio: 1;
+      background: linear-gradient(45deg, var(--primary), var(--secondary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .song-info {
+      padding: 0.5rem;
+    }
+    .song-title {
+      font-size: 0.9rem;
+      margin-bottom: 0.2rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .artist {
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.7);
+    }
+    .player {
+      background: var(--surface);
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .control-btn {
+      background: none;
+      border: none;
+      color: var(--text);
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+    .control-btn:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .play-btn {
+      background: var(--primary);
+      width: 50px;
+      height: 50px;
+    }
+    .play-btn:hover {
+      background: var(--secondary);
+    }
+    .progress {
+      flex: 1;
+      height: 4px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 2px;
+      position: relative;
+      cursor: pointer;
+    }
+    .progress-bar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: var(--primary);
+      border-radius: 2px;
+      width: 30%;
+    }
+    .download-btn {
+      background: var(--primary);
+      border: none;
+      color: var(--text);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="app">
+    <header class="header">
+      <div class="logo">Music Kako</div>
+      <div class="search-container">
+        <input type="text" class="search" placeholder="Search songs..." v-model="searchQuery" @input="searchSongs">
+        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="10" cy="10" r="7"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </div>
+      <button @click="selectLocalFiles" class="download-btn">Add Songs</button>
+      <input type="file" id="fileInput" accept="audio/*" style="display: none;" multiple @change="handleFileSelect">
+    </header>
+
+    <div class="tabs">
+      <div class="tab active">Local Songs</div>
+      <div class="tab">Downloads</div>
+      <div class="tab">Playlists</div>
+    </div>
+
+    <main class="main-content">
+      <!-- Destaques de Música -->
+      <section class="category">
+        <h2 class="category-title">Destaques</h2>
+        <div class="song-grid">
+          <div class="song-card" v-for="song in featuredSongs" :key="song.id" @click="playSong(song)">
+            <div class="album-art">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5zm0-5.5c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"/>
+              </svg>
+            </div>
+            <div class="song-info">
+              <div class="song-title">{{ song.title }}</div>
+              <div class="artist">{{ song.artist }}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Músicas Locais -->
+      <section class="category">
+        <h2 class="category-title">Your Songs</h2>
+        <div class="song-grid">
+          <div class="song-card" v-for="song in filteredSongs" :key="song.id" @click="playSong(song)">
+            <div class="album-art">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5zm0-5.5c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"/>
+              </svg>
+            </div>
+            <div class="song-info">
+              <div class="song-title">{{ song.title }}</div>
+              <div class="artist">{{ song.artist }}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="player">
+      <div class="controls">
+        <button class="control-btn" @click="prevSong">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+          </svg>
+        </button>
+        <button class="control-btn play-btn" @click="togglePlay">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path v-if="!isPlaying" d="M8 5v14l11-7z"/>
+            <path v-else d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+          </svg>
+        </button>
+        <button class="control-btn" @click="nextSong">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="progress">
+        <div class="progress-bar" :style="{ width: progress + '%' }"></div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const app = Vue.createApp({
+      data() {
+        return {
+          songs: [],
+          featuredSongs: [
+            { id: 'song1', title: 'Song 1', artist: 'Artist 1', file: 'song1.mp3' },
+            { id: 'song2', title: 'Song 2', artist: 'Artist 2', file: 'song2.mp3' }
+          ],
+          currentSong: null,
+          isPlaying: false,
+          searchQuery: '',
+          searchResults: [],
+          progress: 0
+        };
+      },
+      computed: {
+        filteredSongs() {
+          if (!this.searchQuery) {
+            return this.songs;
+          }
+          return this.songs.filter(song => song.title.toLowerCase().includes(this.searchQuery.toLowerCase()));
+        }
+      },
+      methods: {
+        togglePlay() {
+          this.isPlaying = !this.isPlaying;
+          if (this.isPlaying) {
+            this.startProgressBar();
+          } else {
+            clearInterval(this.progressInterval);
+          }
+        },
+        selectLocalFiles() {
+          document.getElementById('fileInput').click();
+        },
+        handleFileSelect(event) {
+          const files = Array.from(event.target.files);
+          const newSongs = files.map(file => ({
+            id: file.name,
+            title: file.name,
+            artist: 'Unknown Artist',
+            file
+          }));
+          this.songs.push(...newSongs);
+        },
+        searchSongs() {
+          if (!this.searchQuery) {
+            this.searchResults = [];
+            return;
+          }
+          this.searchResults = this.songs.filter(song =>
+            song.title.toLowerCase().includes(this.searchQuery.toLowerCase())
+          );
+        },
+        playSong(song) {
+          this.currentSong = song;
+          this.isPlaying = true;
+          this.startProgressBar();
+        },
+        prevSong() {
+          const currentIndex = this.songs.indexOf(this.currentSong);
+          if (currentIndex > 0) {
+            this.playSong(this.songs[currentIndex - 1]);
+          }
+        },
+        nextSong() {
+          const currentIndex = this.songs.indexOf(this.currentSong);
+          if (currentIndex < this.songs.length - 1) {
+            this.playSong(this.songs[currentIndex + 1]);
+          }
+        },
+        startProgressBar() {
+          this.progress = 0;
+          this.progressInterval = setInterval(() => {
+            if (this.progress < 100) {
+              this.progress += 1;
+            } else {
+              clearInterval(this.progressInterval);
+            }
+          }, 100);
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
